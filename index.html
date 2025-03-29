@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beautiful Calculator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(45deg, #3a6186, #89253e);
+        }
+        
+        .calculator {
+            background-color: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 15px 25px rgba(0, 0, 0, 0.2);
+            width: 320px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .display {
+            padding: 20px;
+            text-align: right;
+            background-color: rgba(0, 0, 0, 0.2);
+            height: 100px;
+            position: relative;
+        }
+        
+        .history {
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.5);
+            min-height: 20px;
+            margin-bottom: 10px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .result {
+            font-size: 36px;
+            color: white;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1px;
+            background-color: rgba(0, 0, 0, 0.1);
+            padding: 5px;
+        }
+        
+        button {
+            border: none;
+            background-color: rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 20px 0;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-radius: 8px;
+            margin: 3px;
+        }
+        
+        button:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        button:active {
+            transform: scale(0.95);
+        }
+        
+        .operator {
+            background-color: rgba(255, 165, 0, 0.8);
+        }
+        
+        .operator:hover {
+            background-color: rgba(255, 165, 0, 1);
+        }
+        
+        .equal {
+            background-color: rgba(0, 200, 83, 0.8);
+            grid-column: span 2;
+        }
+        
+        .equal:hover {
+            background-color: rgba(0, 200, 83, 1);
+        }
+        
+        .clear, .delete {
+            background-color: rgba(244, 67, 54, 0.8);
+        }
+        
+        .clear:hover, .delete:hover {
+            background-color: rgba(244, 67, 54, 1);
+        }
+        
+        @media (max-width: 400px) {
+            .calculator {
+                width: 90%;
+            }
+            
+            button {
+                padding: 15px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator">
+        <div class="display">
+            <div class="history" id="history"></div>
+            <div class="result" id="result">0</div>
+        </div>
+        <div class="buttons">
+            <button class="clear" onclick="clearAll()">C</button>
+            <button class="delete" onclick="deleteChar()">⌫</button>
+            <button class="operator" onclick="appendChar('%')">%</button>
+            <button class="operator" onclick="appendChar('/')">/</button>
+            
+            <button onclick="appendChar('7')">7</button>
+            <button onclick="appendChar('8')">8</button>
+            <button onclick="appendChar('9')">9</button>
+            <button class="operator" onclick="appendChar('*')">×</button>
+            
+            <button onclick="appendChar('4')">4</button>
+            <button onclick="appendChar('5')">5</button>
+            <button onclick="appendChar('6')">6</button>
+            <button class="operator" onclick="appendChar('-')">-</button>
+            
+            <button onclick="appendChar('1')">1</button>
+            <button onclick="appendChar('2')">2</button>
+            <button onclick="appendChar('3')">3</button>
+            <button class="operator" onclick="appendChar('+')">+</button>
+            
+            <button onclick="appendChar('0')">0</button>
+            <button onclick="appendChar('.')">.</button>
+            <button class="equal" onclick="calculate()">=</button>
+        </div>
+    </div>
+
+    <script>
+        let currentInput = '';
+        let currentResult = '0';
+        let history = '';
+        let lastOperatorIndex = -1;
+        
+        function updateDisplay() {
+            document.getElementById('result').textContent = currentResult;
+            document.getElementById('history').textContent = history;
+        }
+        
+        function appendChar(char) {
+            // If we've just calculated a result and start with a number, clear everything
+            if (history.includes('=') && '0123456789'.includes(char)) {
+                clearAll();
+            }
+            
+            // If we've just calculated a result and hit an operator, use the result
+            if (history.includes('=') && '+-*/'.includes(char)) {
+                history = currentResult;
+                currentInput = currentResult;
+            }
+            
+            // If current result is 0 and we're entering a number, replace it
+            if (currentResult === '0' && '0123456789'.includes(char)) {
+                currentResult = char;
+                currentInput = char;
+                history = char;
+                return updateDisplay();
+            }
+            
+            // Handle operators
+            if ('+-*/%'.includes(char)) {
+                // Don't allow multiple operators in a row
+                if ('+-*/%'.includes(currentInput.slice(-1))) {
+                    currentInput = currentInput.slice(0, -1) + char;
+                    history = history.slice(0, -1) + char;
+                } else {
+                    currentInput += char;
+                    history += char;
+                }
+                currentResult = char;
+            } else if (char === '.') {
+                // Don't allow multiple decimal points in a number
+                const parts = currentInput.split(/[-+*/]/);
+                const lastPart = parts[parts.length - 1];
+                if (!lastPart.includes('.')) {
+                    currentInput += char;
+                    history += char;
+                    currentResult += char;
+                }
+            } else {
+                // Handling numbers
+                if ('+-*/%'.includes(currentResult)) {
+                    currentResult = char;
+                } else {
+                    currentResult += char;
+                }
+                currentInput += char;
+                history += char;
+            }
+            
+            updateDisplay();
+        }
+        
+        function calculate() {
+            try {
+                // Don't calculate if ending with an operator
+                if ('+-*/%'.includes(currentInput.slice(-1))) {
+                    return;
+                }
+                
+                // Format for calculation
+                let expression = currentInput.replace(/×/g, '*').replace(/÷/g, '/');
+                
+                // Handle percentages
+                if (expression.includes('%')) {
+                    expression = expression.replace(/(\d+\.?\d*)%/g, '($1/100)');
+                }
+                
+                const result = eval(expression);
+                history = currentInput + '=';
+                currentResult = Number.isInteger(result) ? result.toString() : result.toFixed(4).replace(/\.?0+$/, '');
+                currentInput = currentResult;
+                
+                updateDisplay();
+            } catch (error) {
+                currentResult = 'Error';
+                updateDisplay();
+                setTimeout(() => {
+                    clearAll();
+                }, 1500);
+            }
+        }
+        
+        function clearAll() {
+            currentInput = '';
+            currentResult = '0';
+            history = '';
+            updateDisplay();
+        }
+        
+        function deleteChar() {
+            if (history.includes('=')) {
+                clearAll();
+                return;
+            }
+            
+            currentInput = currentInput.slice(0, -1);
+            history = history.slice(0, -1);
+            
+            if (currentInput === '') {
+                currentResult = '0';
+            } else {
+                // Find the last number or operator
+                const lastNumMatch = currentInput.match(/[\d.]+$/);
+                const lastOpMatch = currentInput.match(/[+\-*/]$/);
+                
+                if (lastNumMatch) {
+                    currentResult = lastNumMatch[0];
+                } else if (lastOpMatch) {
+                    currentResult = lastOpMatch[0];
+                } else {
+                    currentResult = '0';
+                }
+            }
+            
+            updateDisplay();
+        }
+        
+        // Keyboard support
+        document.addEventListener('keydown', (event) => {
+            let key = event.key;
+            
+            if ('0123456789.'.includes(key)) {
+                appendChar(key);
+            } else if (key === '+' || key === '-' || key === '*' || key === '/') {
+                appendChar(key);
+            } else if (key === 'Enter' || key === '=') {
+                calculate();
+            } else if (key === 'Escape') {
+                clearAll();
+            } else if (key === 'Backspace') {
+                deleteChar();
+            } else if (key === '%') {
+                appendChar('%');
+            }
+        });
+    </script>
+</body>
+</html>
